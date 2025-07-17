@@ -49,21 +49,28 @@ try:
     train = df_h[df_h["dataset_split"] == "train"]
     test = df_h[df_h["dataset_split"] == "test"]
 
-    if train.shape[0] >= 2 and test.shape[0] >= 1:   # ✅ 修复后的判断逻辑
-        from prophet import Prophet
-        model = Prophet()
-        model.fit(train[["ds", "y"]])
+# Prophet 预测结果展示
+if len(train) >= 2 and not test.empty:
+    from prophet import Prophet
+    model = Prophet()
+    model.fit(train[["ds", "y"]])
 
-        forecast = model.predict(test[["ds"]])
-        pred = forecast["yhat"].values[0]
-        true = test["y"].values[0]
+    forecast = model.predict(test[["ds"]])
+    pred = forecast["yhat"].values[0]
+    true = test["y"].values[0]
 
-        st.success(f"✅ Prediction for {selected_branch}")
-        st.write(f"True: {true}, Predicted: {pred:.2f}")
-        st.line_chart(forecast[["ds", "yhat"]].set_index("ds"))
-    else:
-        st.warning("⚠️ Not enough training or test data for this branch to run Prophet.")
-        st.write(f"Train size: {train.shape[0]}, Test size: {test.shape[0]}")
-except Exception as e:
-    st.error(f"⚠️ Failed to run Prophet forecast: {e}")
+    st.success(f"✅ Prediction for {selected_branch}")
+    st.write(f"True: {true}, Predicted: {pred:.2f}")
+
+    # 可视化预测 vs 实际（条形图）
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    fig, ax = plt.subplots()
+    ax.bar(["True", "Predicted"], [true, pred], color=["skyblue", "orange"])
+    ax.set_title(f"{selected_branch}: True vs Predicted Treatment Count")
+    st.pyplot(fig)
+
+    # 预测趋势图（时间线）
+    st.line_chart(forecast[["ds", "yhat"]].set_index("ds"))
 
