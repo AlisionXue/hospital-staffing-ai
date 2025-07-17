@@ -3,6 +3,7 @@ import pandas as pd
 from PIL import Image
 from prophet import Prophet
 import plotly.express as px
+import io
 
 # 页面标题
 st.title("🏥 Hospital Staffing AI Dashboard")
@@ -31,52 +32,61 @@ if uploaded_file is not None:
     st.write("Your uploaded data:")
     st.dataframe(user_df.head())
 
-# 4. Week 5: Prophet Forecast
-st.header("🔮 Week 5: Forecast with Prophet")
+# 4. Week 5 & 6: Prophet Forecast
+st.header("🔮 Week 5 & 6: Prophet Forecast + Summary")
 df_path = "data/hospital_week4_timeseries_lagged.csv"
 try:
     df = pd.read_csv(df_path)
     df["ds"] = pd.to_datetime(df["quarter_dt"])
     df = df.rename(columns={"treatment_count": "y"})
 
-    branches = df["hospital_branch"].unique().tolist()
-    selected_branch = st.selectbox("Select hospital branch for Prophet forecast:", branches)
+    results = []
 
-    df_h = df[df["hospital_branch"] == selected_branch]
-    train = df_h[df_h["dataset_split"] == "train"]
-    test = df_h[df_h["dataset_split"] == "test"]
+    for branch in df["hospital_branch"].unique():
+        df_h = df[df["hospital_branch"] == branch]
+        train = df_h[df_h["dataset_split"] == "train"]
+        test = df_h[df_h["dataset_split"] == "test"]
 
-    if len(train) >= 2 and not test.empty:
-        model = Prophet()
-        model.fit(train[["ds", "y"]])
+        if len(train) >= 2 and not test.empty:
+            model = Prophet()
+            model.fit(train[["ds", "y"]])
+            forecast = model.predict(test[["ds"]])
 
-        forecast = model.predict(test[["ds"]])
-        pred = forecast["yhat"].values[0]
-        true = test["y"].values[0]
+            pred = forecast["yhat"].values[0]
+            true = test["y"].values[0]
+            error = abs(true - pred)
 
-        st.success(f"✅ Prediction for {selected_branch}")
-        st.write(f"True: {true}, Predicted: {pred:.2f}")
+            results.append({
+                "Hospital Branch": branch,
+                "True Value": true,
+                "Predicted Value": round(pred, 2),
+                "Error (Abs)": round(error, 2)
+            })
 
-        # 🔍 显示条形图对比
-        st.subheader(f"{selected_branch}: True vs Predicted Treatment Count")
-        chart_df = pd.DataFrame({
-            "Type": ["True", "Predicted"],
-            "Treatment Count": [true, pred]
-        })
-        fig = px.bar(chart_df, x="Type", y="Treatment Count", color="Type", title=f"{selected_branch}: True vs Predicted")
-        st.plotly_chart(fig)
+    if results:
+        summary_df = pd.DataFrame(results)
 
-        # Week 6: 创建一个统计表
+        # 展示表格
         st.subheader("🌟 Week 6: Summary Table")
-        st.table(pd.DataFrame({
-            "Hospital Branch": [selected_branch],
-            "True Value": [true],
-            "Predicted Value": [round(pred, 2)],
-            "Error (Abs)": [round(abs(true - pred), 2)]
-        }))
+        st.dataframe(summary_df)
+
+        # 展示误差条形图
+        fig_err = px.bar(summary_df, x="Hospital Branch", y="Error (Abs)", title="Prediction Error by Hospital")
+        st.plotly_chart(fig_err)
+
+        # 显示总体 MAE 和 RMSE
+        mae = round(summary_df["Error (Abs)"].mean(), 2)
+        rmse = round((summary_df["Error (Abs)"]**2).mean()**0.5, 2)
+        st.write(f"✅ Mean Absolute Error (MAE): {mae}")
+        st.write(f"✅ Root Mean Squared Error (RMSE): {rmse}")
+
+        # 添加 CSV 下载按钮
+        csv_buffer = io.StringIO()
+        summary_df.to_csv(csv_buffer, index=False)
+        st.download_button("📥 Download Summary CSV", csv_buffer.getvalue(), "week6_summary.csv", "text/csv")
 
     else:
-        st.warning(f"⚠️ Not enough training or test data for this branch to run Prophet.\n\nTrain size: {len(train)}, Test size: {len(test)}")
+        st.warning("⚠️ Not enough data across all branches to generate summary table.")
 
 except Exception as e:
     st.error(f"⚠️ Failed to run Prophet forecast: {e}")
