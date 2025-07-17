@@ -50,9 +50,11 @@ try:
         if len(train) >= 2 and not test.empty:
             model = Prophet()
             model.fit(train[["ds", "y"]])
-            forecast = model.predict(test[["ds"]])
 
-            pred = forecast["yhat"].values[0]
+            future = model.make_future_dataframe(periods=4, freq='Q')
+            forecast = model.predict(future)
+
+            pred = forecast["yhat"].iloc[-1]
             true = test["y"].values[0]
             error = abs(true - pred)
 
@@ -98,7 +100,8 @@ try:
         with st.expander("📈 Forecast Trends for Each Branch"):
             for r in results:
                 fig = px.line(r["Forecast"], x="ds", y=["yhat", "yhat_upper", "yhat_lower"],
-                              title=f"Forecast Trend - {r['Hospital Branch']}")
+                              title=f"Forecast Trend - {r['Hospital Branch']}",
+                              line_shape="spline")
                 st.plotly_chart(fig)
 
     else:
