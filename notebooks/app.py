@@ -47,22 +47,23 @@ try:
 
     df_h = df[df["hospital_branch"] == selected_branch]
     train = df_h[df_h["dataset_split"] == "train"]
+    test = df_h[df_h["dataset_split"] == "test"]
 
-    if len(train) >= 2:
-        # 用户自定义预测季度数
-        periods = st.slider("Select number of quarters to forecast:", min_value=1, max_value=8, value=4)
-
+    if train.shape[0] >= 2 and test.shape[0] >= 1:   # ✅ 修复后的判断逻辑
+        from prophet import Prophet
         model = Prophet()
         model.fit(train[["ds", "y"]])
 
-        future = model.make_future_dataframe(periods=periods, freq="Q")
-        forecast = model.predict(future)
+        forecast = model.predict(test[["ds"]])
+        pred = forecast["yhat"].values[0]
+        true = test["y"].values[0]
 
-        st.success(f"✅ Forecast for {selected_branch}")
-        st.write(f"📈 Showing next {periods} quarters forecast.")
+        st.success(f"✅ Prediction for {selected_branch}")
+        st.write(f"True: {true}, Predicted: {pred:.2f}")
         st.line_chart(forecast[["ds", "yhat"]].set_index("ds"))
-        st.dataframe(forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(periods))
     else:
-        st.warning("⚠️ Not enough training data (min 2 rows required).")
+        st.warning("⚠️ Not enough training or test data for this branch to run Prophet.")
+        st.write(f"Train size: {train.shape[0]}, Test size: {test.shape[0]}")
 except Exception as e:
     st.error(f"⚠️ Failed to run Prophet forecast: {e}")
+
