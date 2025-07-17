@@ -1,10 +1,5 @@
 streamlit
 pandas
-matplotlib
-Pillow
-scikit-learn
-streamlit
-pandas
 prophet
 plotly
 Pillow
