@@ -60,11 +60,17 @@ try:
                 "Hospital Branch": branch,
                 "True Value": true,
                 "Predicted Value": round(pred, 2),
-                "Error (Abs)": round(error, 2)
+                "Error (Abs)": round(error, 2),
+                "Forecast": forecast[["ds", "yhat", "yhat_upper", "yhat_lower"]]
             })
 
     if results:
-        summary_df = pd.DataFrame(results)
+        summary_df = pd.DataFrame([{
+            "Hospital Branch": r["Hospital Branch"],
+            "True Value": r["True Value"],
+            "Predicted Value": r["Predicted Value"],
+            "Error (Abs)": r["Error (Abs)"]
+        } for r in results])
 
         # 展示表格
         st.subheader("🌟 Week 6: Summary Table")
@@ -84,8 +90,16 @@ try:
         # 显示总体 MAE 和 RMSE
         mae = round(summary_df["Error (Abs)"].mean(), 2)
         rmse = round((summary_df["Error (Abs)"]**2).mean()**0.5, 2)
-        st.write(f"✅ Mean Absolute Error (MAE): {mae}")
-        st.write(f"✅ Root Mean Squared Error (RMSE): {rmse}")
+        col1, col2 = st.columns(2)
+        col1.metric("📌 Mean Absolute Error (MAE)", mae)
+        col2.metric("📌 Root Mean Squared Error (RMSE)", rmse)
+
+        # 显示每个医院的预测趋势
+        with st.expander("📈 Forecast Trends for Each Branch"):
+            for r in results:
+                fig = px.line(r["Forecast"], x="ds", y=["yhat", "yhat_upper", "yhat_lower"],
+                              title=f"Forecast Trend - {r['Hospital Branch']}")
+                st.plotly_chart(fig)
 
     else:
         st.warning("⚠️ Not enough data across all branches to generate summary table.")
