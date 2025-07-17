@@ -32,7 +32,7 @@ if uploaded_file is not None:
     st.write("Your uploaded data:")
     st.dataframe(user_df.head())
 
-# 4. Week 5 & 6: Prophet Forecast
+# 4. Week 5 & 6: Prophet Forecast + Summary
 st.header("🔮 Week 5 & 6: Prophet Forecast + Summary")
 df_path = "data/hospital_week4_timeseries_lagged.csv"
 try:
@@ -74,16 +74,18 @@ try:
         fig_err = px.bar(summary_df, x="Hospital Branch", y="Error (Abs)", title="Prediction Error by Hospital")
         st.plotly_chart(fig_err)
 
+        # 展示真值 vs 预测值对比图
+        st.subheader("📊 True vs Predicted Treatment Count")
+        fig_comp = px.bar(summary_df.melt(id_vars="Hospital Branch", value_vars=["True Value", "Predicted Value"],
+                                          var_name="Type", value_name="Treatment Count"),
+                         x="Hospital Branch", y="Treatment Count", color="Type", barmode="group")
+        st.plotly_chart(fig_comp)
+
         # 显示总体 MAE 和 RMSE
         mae = round(summary_df["Error (Abs)"].mean(), 2)
         rmse = round((summary_df["Error (Abs)"]**2).mean()**0.5, 2)
         st.write(f"✅ Mean Absolute Error (MAE): {mae}")
         st.write(f"✅ Root Mean Squared Error (RMSE): {rmse}")
-
-        # 添加 CSV 下载按钮
-        csv_buffer = io.StringIO()
-        summary_df.to_csv(csv_buffer, index=False)
-        st.download_button("📥 Download Summary CSV", csv_buffer.getvalue(), "week6_summary.csv", "text/csv")
 
     else:
         st.warning("⚠️ Not enough data across all branches to generate summary table.")
