@@ -23,3 +23,37 @@ if uploaded_file is not None:
     user_df = pd.read_csv(uploaded_file)
     st.write("Your uploaded data:")
     st.dataframe(user_df.head())
+
+# 4. Week 5: Prophet Forecast
+st.header("🔮 Week 5: Forecast with Prophet")
+
+df_path = "data/hospital_week4_timeseries_lagged.csv"
+try:
+    df = pd.read_csv(df_path)
+    df["ds"] = pd.to_datetime(df["quarter_dt"])
+    df = df.rename(columns={"treatment_count": "y"})
+
+    branches = df["hospital_branch"].unique().tolist()
+    selected_branch = st.selectbox("Select hospital branch for Prophet forecast:", branches)
+
+    df_h = df[df["hospital_branch"] == selected_branch]
+    train = df_h[df_h["dataset_split"] == "train"]
+    test = df_h[df_h["dataset_split"] == "test"]
+
+    if len(train) >= 2 and not test.empty:
+        from prophet import Prophet
+        model = Prophet()
+        model.fit(train[["ds", "y"]])
+
+        forecast = model.predict(test[["ds"]])
+        pred = forecast["yhat"].values[0]
+        true = test["y"].values[0]
+
+        st.success(f"✅ Prediction for {selected_branch}")
+        st.write(f"True: {true}, Predicted: {pred:.2f}")
+        st.line_chart(forecast[["ds", "yhat"]].set_index("ds"))
+    else:
+        st.warning("Not enough data for this branch to run Prophet.")
+except Exception as e:
+    st.error(f"⚠️ Failed to run Prophet forecast: {e}")
+
