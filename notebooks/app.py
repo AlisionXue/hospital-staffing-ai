@@ -26,7 +26,6 @@ except Exception as e:
 # 3. 上传你自己的数据
 st.header("📝 Upload Your Data")
 uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
-
 if uploaded_file is not None:
     user_df = pd.read_csv(uploaded_file)
     st.write("Your uploaded data:")
@@ -34,7 +33,6 @@ if uploaded_file is not None:
 
 # 4. Week 5: Prophet Forecast
 st.header("🔮 Week 5: Forecast with Prophet")
-
 df_path = "data/hospital_week4_timeseries_lagged.csv"
 try:
     df = pd.read_csv(df_path)
@@ -65,9 +63,17 @@ try:
             "Type": ["True", "Predicted"],
             "Treatment Count": [true, pred]
         })
-
         fig = px.bar(chart_df, x="Type", y="Treatment Count", color="Type", title=f"{selected_branch}: True vs Predicted")
         st.plotly_chart(fig)
+
+        # Week 6: 创建一个统计表
+        st.subheader("🌟 Week 6: Summary Table")
+        st.table(pd.DataFrame({
+            "Hospital Branch": [selected_branch],
+            "True Value": [true],
+            "Predicted Value": [round(pred, 2)],
+            "Error (Abs)": [round(abs(true - pred), 2)]
+        }))
 
     else:
         st.warning(f"⚠️ Not enough training or test data for this branch to run Prophet.\n\nTrain size: {len(train)}, Test size: {len(test)}")
