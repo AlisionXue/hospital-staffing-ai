@@ -26,7 +26,10 @@ except Exception as e:
 
 # 3. 上传你自己的数据
 st.header("📝 Upload Your Data")
-uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
+uploaded_file = st.file_uploader(
+    "Upload a CSV file (same format as hospital_week4_timeseries_lagged.csv)",
+    type="csv"
+)
 if uploaded_file is not None:
     user_df = pd.read_csv(uploaded_file)
     st.write("Your uploaded data:")
@@ -78,15 +81,22 @@ try:
         st.subheader("🌟 Week 6: Summary Table")
         st.dataframe(summary_df)
 
-        # 展示误差条形图
-        fig_err = px.bar(summary_df, x="Hospital Branch", y="Error (Abs)", title="Prediction Error by Hospital")
+        # 展示误差条形图（按误差大小排序）
+        fig_err = px.bar(
+            summary_df.sort_values(by="Error (Abs)", ascending=False),
+            x="Hospital Branch", y="Error (Abs)", title="Prediction Error by Hospital"
+        )
+        fig_err.update_layout(yaxis_tickformat=".2f")
         st.plotly_chart(fig_err)
 
         # 展示真值 vs 预测值对比图
         st.subheader("📊 True vs Predicted Treatment Count")
-        fig_comp = px.bar(summary_df.melt(id_vars="Hospital Branch", value_vars=["True Value", "Predicted Value"],
-                                          var_name="Type", value_name="Treatment Count"),
-                         x="Hospital Branch", y="Treatment Count", color="Type", barmode="group")
+        fig_comp = px.bar(
+            summary_df.melt(id_vars="Hospital Branch", value_vars=["True Value", "Predicted Value"],
+                            var_name="Type", value_name="Treatment Count"),
+            x="Hospital Branch", y="Treatment Count", color="Type", barmode="group"
+        )
+        fig_comp.update_layout(yaxis_tickformat=".2f")
         st.plotly_chart(fig_comp)
 
         # 显示总体 MAE 和 RMSE
@@ -96,12 +106,19 @@ try:
         col1.metric("📌 Mean Absolute Error (MAE)", mae)
         col2.metric("📌 Root Mean Squared Error (RMSE)", rmse)
 
+        st.markdown(f"""
+        **📈 模型评价指标说明：**  
+        - **MAE（平均绝对误差）**：预测值与真实值差异的平均值。越小越好。  
+        - **RMSE（均方根误差）**：对大误差更敏感。越小越好。
+        """)
+
         # 显示每个医院的预测趋势
         with st.expander("📈 Forecast Trends for Each Branch"):
             for r in results:
                 fig = px.line(r["Forecast"], x="ds", y=["yhat", "yhat_upper", "yhat_lower"],
                               title=f"Forecast Trend - {r['Hospital Branch']}",
                               line_shape="spline")
+                fig.update_layout(xaxis_tickformat="%b %Y", yaxis_tickformat=".2f", hovermode="x unified")
                 st.plotly_chart(fig)
 
     else:
