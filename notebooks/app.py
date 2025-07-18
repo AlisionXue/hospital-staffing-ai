@@ -107,9 +107,9 @@ try:
         col2.metric("📌 Root Mean Squared Error (RMSE)", rmse)
 
         st.markdown(f"""
-        **📈 模型评价指标说明：**  
-        - **MAE（平均绝对误差）**：预测值与真实值差异的平均值。越小越好。  
-        - **RMSE（均方根误差）**：对大误差更敏感。越小越好。
+        **📈 Model evaluation index description:**
+        - **MAE (mean absolute error)**: The average value of the difference between the predicted value and the true value. The smaller the better.
+        - **RMSE (root mean square error)**: More sensitive to large errors. The smaller the better.
         """)
 
         # 显示每个医院的预测趋势
